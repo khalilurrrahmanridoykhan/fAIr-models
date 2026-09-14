@@ -1,0 +1,237 @@
+{
+  "type": "Feature",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://stac-extensions.github.io/mlm/v1.5.1/schema.json",
+    "https://stac-extensions.github.io/version/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/classification/v2.0.0/schema.json",
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/raster/v1.1.0/schema.json",
+    "https://hotosm.github.io/fAIr-models/schemas/v1.0.0/base-model/schema.json"
+  ],
+  "id": "unet-buildings",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-180, -90],
+        [180, -90],
+        [180, 90],
+        [-180, 90],
+        [-180, -90]
+      ]
+    ]
+  },
+  "bbox": [-180, -90, 180, 90],
+  "properties": {
+    "datetime": "2026-09-14T00:00:00Z",
+    "created": "2026-09-14T00:00:00Z",
+    "updated": "2026-09-14T00:00:00Z",
+    "title": "U-Net Buildings (ResNet-34 encoder)",
+    "description": "A U-Net for binary building segmentation with a torchvision ResNet-34 encoder initialised from ImageNet weights. Unlike the frozen-encoder dinov3s-buildings model, every layer (encoder and decoder) updates during finetuning, which suits projects with enough labelled OAM chips to benefit from adapting the encoder itself, and has no dependency on a third-party finetuning package -- the architecture, training loop and ONNX export are self-contained standard PyTorch/torchvision.",
+    "mlm:name": "unet-buildings",
+    "mlm:architecture": "U-Net (ResNet-34 encoder)",
+    "mlm:tasks": ["semantic-segmentation"],
+    "mlm:framework": "PyTorch",
+    "mlm:framework_version": "2.7.1",
+    "mlm:pretrained": true,
+    "mlm:pretrained_source": "https://download.pytorch.org/models/resnet34-b627a593.pth",
+    "fair:recommended_zoom": 19,
+    "fair:source_imagery": "https://tiles.openaerialmap.org/62d85d11d8499800053796c1/0/62d85d11d8499800053796c2/{z}/{x}/{y}",
+    "fair:preview": {
+      "center": [85.5205, 27.6295],
+      "zoom": { "recommended": 19, "min": 16, "max": 21 },
+      "imagery": {
+        "url": "https://tiles.openaerialmap.org/62d85d11d8499800053796c1/0/62d85d11d8499800053796c2/{z}/{x}/{y}",
+        "type": "tms",
+        "name": "OpenAerialMap - Banepa",
+        "attribution": "OpenAerialMap"
+      },
+      "place": { "name": "Banepa", "country": "Nepal", "country_code": "NP" }
+    },
+    "keywords": ["building", "semantic-segmentation", "polygon"],
+    "license": "Apache-2.0",
+    "version": "1",
+    "deprecated": false,
+    "providers": [
+      {
+        "name": "HOTOSM",
+        "roles": ["producer", "host"],
+        "url": "https://www.hotosm.org",
+        "description": "Humanitarian OpenStreetMap Team"
+      }
+    ],
+    "fair:metrics_spec": [
+      {
+        "key": "iou_building",
+        "name": "Building IoU",
+        "description": "Intersection over union of predicted and labelled building pixels on the val split: sum of intersection pixels divided by sum of union pixels across all val chips."
+      },
+      {
+        "key": "precision_building",
+        "name": "Building precision",
+        "description": "Fraction of predicted building pixels that are truly building on the val split."
+      },
+      {
+        "key": "recall_building",
+        "name": "Building recall",
+        "description": "Fraction of true building pixels that were predicted as building on the val split."
+      }
+    ],
+    "fair:split_spec": {
+      "strategy": "spatial",
+      "default_ratio": 0.2,
+      "seed": 42,
+      "block_size": 4,
+      "description": "OAM-x-y-z chips grouped into (x // block_size, y // block_size) blocks; whole blocks assigned to train or val so adjacent chips never split across the boundary. Non-OAM filenames fall back to a seeded random split."
+    },
+    "fair:hyperparameters_spec": [
+      {
+        "key": "epochs",
+        "type": "int",
+        "default": 15,
+        "min": 1,
+        "max": 200,
+        "description": "Number of full passes over the training split."
+      },
+      {
+        "key": "batch_size",
+        "type": "int",
+        "default": 4,
+        "min": 1,
+        "max": 32,
+        "description": "Chips per gradient step."
+      },
+      {
+        "key": "learning_rate",
+        "type": "float",
+        "default": 0.001,
+        "min": 1e-5,
+        "max": 0.1,
+        "description": "Adam optimizer learning rate applied to every layer (encoder and decoder)."
+      },
+      {
+        "key": "val_ratio",
+        "type": "float",
+        "default": 0.2,
+        "min": 0.1,
+        "max": 0.5,
+        "description": "Fraction of spatial blocks held out for validation."
+      },
+      {
+        "key": "split_seed",
+        "type": "int",
+        "default": 42,
+        "min": 0,
+        "max": 100000,
+        "description": "Random seed for the spatial block split and weight initialisation."
+      },
+      {
+        "key": "block_size",
+        "type": "int",
+        "default": 4,
+        "min": 1,
+        "max": 16,
+        "description": "OAM tile-coordinate block size used to group chips before the spatial train/val split."
+      },
+      {
+        "key": "confidence_threshold",
+        "type": "float",
+        "default": 0.5,
+        "min": 0.0,
+        "max": 1.0,
+        "description": "Minimum building-class probability for a pixel to be kept."
+      }
+    ],
+    "mlm:input": [
+      {
+        "name": "RGB chips",
+        "bands": [{ "name": "red" }, { "name": "green" }, { "name": "blue" }],
+        "input": {
+          "shape": [-1, 3, 256, 256],
+          "dim_order": ["batch", "bands", "height", "width"],
+          "data_type": "float32"
+        },
+        "pre_processing_function": {
+          "format": "python",
+          "expression": "models.unet_buildings.pipeline:preprocess"
+        }
+      }
+    ],
+    "mlm:output": [
+      {
+        "name": "segmentation logits",
+        "tasks": ["semantic-segmentation"],
+        "result": {
+          "shape": [-1, 2, 256, 256],
+          "dim_order": ["batch", "channel", "height", "width"],
+          "data_type": "float32"
+        },
+        "classification:classes": [
+          { "name": "background", "value": 0, "description": "Non-building pixels" },
+          { "name": "building", "value": 1, "description": "Building footprints" }
+        ],
+        "post_processing_function": {
+          "format": "python",
+          "expression": "models.unet_buildings.pipeline:postprocess"
+        },
+        "bands": []
+      }
+    ],
+    "mlm:hyperparameters": {
+      "training.epochs": 15,
+      "training.batch_size": 4,
+      "training.learning_rate": 0.001,
+      "training.val_ratio": 0.2,
+      "training.split_seed": 42,
+      "training.block_size": 4,
+      "inference.confidence_threshold": 0.5
+    }
+  },
+  "assets": {
+    "checkpoint": {
+      "href": "https://download.pytorch.org/models/resnet34-b627a593.pth",
+      "type": "application/octet-stream; framework=pytorch",
+      "title": "ImageNet-pretrained torchvision ResNet-34 encoder weights",
+      "roles": ["mlm:model", "mlm:weights"],
+      "mlm:artifact_type": "torch.save",
+      "raster:bands": [{ "name": "red" }, { "name": "green" }, { "name": "blue" }]
+    },
+    "source-code": {
+      "href": "https://github.com/hotosm/fAIr-models/tree/develop/models/unet_buildings",
+      "type": "text/html",
+      "roles": ["code"],
+      "mlm:entrypoint": "models.unet_buildings.pipeline:predict"
+    },
+    "mlm:training": {
+      "href": "ghcr.io/hotosm/fair-models/unet_buildings:dev",
+      "type": "application/vnd.oci.image.index.v1+json",
+      "title": "Training runtime image",
+      "roles": ["mlm:training-runtime"]
+    },
+    "mlm:inference": {
+      "href": "ghcr.io/hotosm/fair-models/unet_buildings:dev-inference",
+      "type": "application/vnd.oci.image.index.v1+json",
+      "title": "Inference runtime image",
+      "roles": ["mlm:inference-runtime"]
+    },
+    "readme": {
+      "href": "https://raw.githubusercontent.com/hotosm/fAIr-models/refs/heads/develop/models/unet_buildings/README.md",
+      "type": "text/markdown",
+      "title": "Model README",
+      "roles": ["metadata"]
+    }
+  },
+  "links": [
+    {
+      "rel": "cite-as",
+      "href": "https://doi.org/10.48550/arXiv.1505.04597",
+      "title": "U-Net: Convolutional Networks for Biomedical Image Segmentation"
+    },
+    {
+      "rel": "cite-as",
+      "href": "https://doi.org/10.48550/arXiv.1512.03385",
+      "title": "Deep Residual Learning for Image Recognition (ResNet)"
+    }
+  ]
+}
