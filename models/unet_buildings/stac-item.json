@@ -197,6 +197,14 @@
       "mlm:artifact_type": "torch.save",
       "raster:bands": [{ "name": "red" }, { "name": "green" }, { "name": "blue" }]
     },
+    "model": {
+      "href": "https://github.com/khalilurrrahmanridoykhan/fAIr-models/releases/download/unet-buildings-seed-v1/seed.onnx",
+      "type": "application/octet-stream; framework=onnx",
+      "title": "Portable ONNX inference model (ImageNet-pretrained encoder, untrained decoder)",
+      "roles": ["mlm:model", "mlm:compiled"],
+      "mlm:artifact_type": "onnx",
+      "raster:bands": [{ "name": "red" }, { "name": "green" }, { "name": "blue" }]
+    },
     "source-code": {
       "href": "https://github.com/hotosm/fAIr-models/tree/develop/models/unet_buildings",
       "type": "text/html",
