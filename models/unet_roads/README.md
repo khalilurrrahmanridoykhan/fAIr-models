@@ -39,8 +39,12 @@ topological road-graph library.
 and holds out whole blocks for validation, identical to `unet_buildings`.
 `train_model` buffers the training labels' road centrelines into a raster mask
 sized by each line's `highway` tag, then trains the full network end to end
-with Adam and cross-entropy loss. `evaluate_model` reports road-class pixel IoU,
-precision, and recall on the held-out validation chips.
+with Adam and cross-entropy loss. Road pixels are typically a small minority of
+a chip -- far more imbalanced than buildings usually are -- so the loss weights
+the road class by its own inverse frequency in the current training batch, capped
+by the `max_class_weight` hyperparameter; without this, training on a sparse
+project collapses to predicting no road at all. `evaluate_model` reports
+road-class pixel IoU, precision, and recall on the held-out validation chips.
 
 ## Limitations
 

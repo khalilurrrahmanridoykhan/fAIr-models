@@ -141,6 +141,14 @@
         "min": 0.0,
         "max": 1.0,
         "description": "Minimum road-class probability for a pixel to be kept before skeletonisation."
+      },
+      {
+        "key": "max_class_weight",
+        "type": "float",
+        "default": 8.0,
+        "min": 1.0,
+        "max": 25.0,
+        "description": "Cap on the road-class weight in the training loss, computed each run from this dataset's own road-pixel fraction (inverse frequency). Road pixels are typically a small minority of a chip; without this, training collapses to predicting no road at all on sparse projects. Raise it for a project with very few road pixels per chip, lower it if training starts over-predicting road everywhere."
       }
     ],
     "mlm:input": [
@@ -185,6 +193,7 @@
       "training.val_ratio": 0.2,
       "training.split_seed": 42,
       "training.block_size": 4,
+      "training.max_class_weight": 8.0,
       "inference.confidence_threshold": 0.5
     }
   },

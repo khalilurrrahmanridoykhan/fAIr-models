@@ -484,9 +484,24 @@ def train_model(
     epochs = int(hyperparameters.get("epochs", 5))
     batch_size = int(hyperparameters.get("batch_size", 4))
     lr = float(hyperparameters.get("learning_rate", 1e-3))
+    max_class_weight = float(hyperparameters.get("max_class_weight", 8.0))
+
+    # Road pixels are typically a small minority of a chip (a few percent is common),
+    # far more imbalanced than e.g. buildings. Unweighted cross-entropy collapses to
+    # predicting background everywhere in that regime (empirically confirmed: 0.0 IoU
+    # on a real ~5%-road sample). Weight the road class by its own inverse frequency
+    # in *this* training batch -- every project's road density differs, so the weight
+    # must adapt per run rather than being a fixed constant -- capped so a very sparse
+    # project can't push the weight so high training destabilises the other way
+    # (over-predicting road everywhere, cratering precision).
+    road_idx = CLASS_NAMES.index("road")
+    road_fraction = float((y.numpy() == road_idx).mean())
+    road_weight = min((1.0 - road_fraction) / max(road_fraction, 1e-6), max_class_weight)
+    class_weights = torch.tensor([1.0, road_weight], dtype=torch.float32)
+    log_metadata(metadata={"fair/road_pixel_fraction": road_fraction, "fair/road_class_weight": road_weight})
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     model.train()
     n = x.shape[0]
